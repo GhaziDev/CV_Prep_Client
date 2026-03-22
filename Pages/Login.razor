@@ -1,0 +1,49 @@
+@page "/login"
+@using System.Net.Http.Json
+@inject HttpClient Http
+<div>
+    <EditForm Model="loginInfo" OnSubmit="HandleSubmit">
+        <InputText type="email" @bind-Value="loginInfo.email"/>
+
+        @if (step==1){
+        <InputText type="text" @bind-Value="loginInfo.OtpCode"/>
+        }
+
+        <button type="submit">Login</button>
+        
+
+    
+
+    </EditForm>
+</div>
+
+
+@code{
+    private class LoginInfo{
+        public string email {get;set;}
+        public string OtpCode {get;set;}
+
+    }
+
+     private LoginInfo loginInfo = new();
+     private int step = 0;
+
+
+    async Task HandleSubmit(){
+         var response = await Http.PostAsJsonAsync("api/auth/login", loginInfo);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Login success");
+            step+=1;
+           }
+        else
+        {
+            Console.WriteLine("Login failed");
+        
+        }
+        
+        
+        }
+
+}
