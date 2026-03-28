@@ -1,0 +1,154 @@
+@page "/dashboard"
+
+@using System.Net.Http.Json
+@using System.Runtime.CompilerServices
+@inject HttpClient Http
+
+
+
+<tbody>
+
+@foreach (var job in Jobs)
+{
+    <tr style="border-bottom:1px solid #eaeaea;">
+
+        <!-- ROLE -->
+        <td style="padding:18px;width:15%;">
+            <div style="font-weight:600;font-size:15px;">@job.Role</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">
+                ID: @job.Id
+            </div>
+        </td>
+
+        <!-- DESCRIPTION -->
+        <td style="padding:18px;width:25%;color:#555;line-height:1.5;">
+            @job.Description
+        </td>
+
+        <!-- SUGGESTIONS -->
+        <td style="padding:18px;width:20%;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                @foreach (var s in job.Suggestions)
+                {
+                    <span style="background:#111;color:#fff;padding:4px 10px;font-size:11px;border-radius:999px;">
+                        @s
+                    </span>
+                }
+            </div>
+        </td>
+
+        <!-- ATS KEYWORDS -->
+        <td style="padding:18px;width:20%;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                @foreach (var k in job.AtsKeywords)
+                {
+                    <span style="border:1px solid #111;padding:4px 10px;font-size:11px;border-radius:999px;">
+                        @k
+                    </span>
+                }
+            </div>
+        </td>
+
+        <!-- LOCATION -->
+        <td style="padding:18px;width:10%;font-size:13px;color:#666;">
+            @job.Location
+        </td>
+
+    </tr>
+}
+
+</tbody>
+
+
+
+@code{
+
+    private class Job{
+        public required int Id;
+
+        public required string Description;
+
+        public required List<string> Suggestions;
+
+        public required List<string> AtsKeywords;
+
+
+        public required string Url;
+
+        public required string Role;
+
+        public required DateOnly? ClosingDate;
+
+        public required string Location;
+
+
+    }
+
+    
+
+    private List<Job> Data  = new();
+
+    private bool DataState = false;
+
+
+    private List<Job> Jobs = new()
+{
+    new Job
+    {
+        Id = 1023,
+        Role = "Cloud Engineer",
+        Description = "Build scalable AWS systems and optimize infrastructure reliability.",
+        Suggestions = new List<string> { "Improve CI/CD", "Monitoring", "Refactor" },
+        AtsKeywords = new List<string> { "AWS", "Docker", "Terraform" },
+        Url = "#",
+        ClosingDate = new DateOnly(2026, 5, 1),
+        Location = "Auckland - New Zealand"
+    },
+    new Job
+    {
+        Id = 2045,
+        Role = "Backend Developer",
+        Description = "Develop APIs and improve system performance.",
+        Suggestions = new List<string> { "Optimize DB", "Caching", "Logging" },
+        AtsKeywords = new List<string> { "C#", ".NET", "PostgreSQL" },
+        Url = "#",
+        ClosingDate = new DateOnly(2026, 6, 10),
+        Location = "Sydney - Australia"
+    }
+};
+
+
+    // get request to receive all jobs
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "api/Job/list");
+
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+
+        var response = await Http.SendAsync(request);
+
+        Data =await response.Content.ReadFromJsonAsync<List<Job>>();
+        if(Data == null){
+
+            DataState = true;
+
+        }
+        else{
+            DataState = false;
+        }
+
+
+    }
+    
+
+    // the handle-submit is for a webhook call from azure function.
+    // azure function make a call to the backend when a new job is added, the method controller in backend would have
+    // an event emitted, which can be consumed here so that the table is up to dated. 
+    
+
+
+
+
+}

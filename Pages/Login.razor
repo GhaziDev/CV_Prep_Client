@@ -2,6 +2,12 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 <div>
+
+    @if(isAuth==true){
+        <div>You are already logged in</div>
+    }
+
+    else{
     <EditForm Model="loginInfo" OnSubmit="HandleSubmit">
         <InputText type="email" @bind-Value="loginInfo.email"/>
 
@@ -15,26 +21,53 @@
     
 
     </EditForm>
+    }
 </div>
 
 
 @code{
+
+    
     private class LoginInfo{
         public string email {get;set;}
+
         public string OtpCode {get;set;}
 
     }
 
      private LoginInfo loginInfo = new();
      private int step = 0;
+     private bool isAuth = false;
+
+ protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Component initialized");
+        var request = new HttpRequestMessage(HttpMethod.Get, "api/User/check-auth");
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+         var response = await Http.SendAsync(request);
+         isAuth = await response.Content.ReadFromJsonAsync<bool>();
+    }
+
+    
 
 
     async Task HandleSubmit(){
-         var response = await Http.PostAsJsonAsync("api/auth/login", loginInfo);
 
-        if (response.IsSuccessStatusCode)
+var request = new HttpRequestMessage(HttpMethod.Post, "api/User/login")
+{
+    Content = JsonContent.Create(loginInfo)
+};
+
+request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+var response = await Http.SendAsync(request);
+
+         Console.WriteLine(response.StatusCode);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             Console.WriteLine("Login success");
+            //Console.WriteLine(await response.Content.ReadFromJsonAsync<int>());
             step+=1;
            }
         else

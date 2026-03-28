@@ -1,0 +1,165 @@
+@page "/setup"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<EditForm Model="userInfo" OnValidSubmit="HandleSubmit">
+
+<div style="max-width:600px;margin:auto;padding:30px;border:2px solid #111;border-radius:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto;background:#fff;">
+
+    <!-- TITLE -->
+    <div style="font-size:22px;font-weight:600;margin-bottom:20px;">
+        Upload Your Documents
+    </div>
+
+    <!-- CV -->
+    <div style="margin-bottom:20px;">
+        <label style="font-size:13px;font-weight:500;">Main CV</label>
+        <div style="margin-top:8px;border:2px dashed #111;padding:20px;border-radius:12px;text-align:center;">
+            <InputFile OnChange="HandleCvUpload" />
+        </div>
+    </div>
+
+    <!-- COVER LETTER -->
+    <div style="margin-bottom:20px;">
+        <label style="font-size:13px;font-weight:500;">Cover Letter (Optional)</label>
+        <div style="margin-top:8px;border:2px dashed #111;padding:20px;border-radius:12px;text-align:center;">
+            <InputFile OnChange="HandleCoverLetterUpload" />
+        </div>
+    </div>
+
+    <!-- DESIRED ROLES -->
+    <div style="margin-bottom:25px;">
+        <label style="font-size:13px;font-weight:500;">Desired Roles</label>
+
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+
+            @for (int i = 0; i < userInfo.DesiredRoles.Length; i++)
+            {
+                <div style="display:flex;gap:8px;align-items:center;">
+
+                    <!-- INPUT -->
+                    <input
+                        value="@userInfo.DesiredRoles[i]"
+                        @oninput="(e => UpdateRole(i, e.Value?.ToString()))"
+                        placeholder="Enter role (e.g. Cloud Engineer)"
+                        style="flex:1;padding:12px;border:2px solid #111;border-radius:10px;font-size:14px;" />
+
+                    <!-- ADD BUTTON -->
+                    @if (i == userInfo.DesiredRoles.Length - 1 && userInfo.DesiredRoles.Length < 3)
+                    {
+                        <button type="button"
+                                @onclick="AddRole"
+                                style="width:40px;height:40px;border:2px solid #111;background:#fff;font-size:18px;border-radius:10px;cursor:pointer;">
+                            +
+                        </button>
+                    }
+
+                    <!-- REMOVE BUTTON -->
+                    @if (userInfo.DesiredRoles.Length > 1)
+                    {
+                        <button type="button"
+                                @onclick="() => RemoveRole(i)"
+                                style="width:40px;height:40px;border:2px solid #111;background:#fff;font-size:18px;border-radius:10px;cursor:pointer;">
+                            −
+                        </button>
+                    }
+
+                </div>
+            }
+
+        </div>
+    </div>
+
+    <!-- EXECUTIONS -->
+    <div style="margin-bottom:25px;">
+        <label style="font-size:13px;font-weight:500;">Number of Executions</label>
+
+        <InputNumber @bind-Value="userInfo.NoOfTimesExec"
+                     style="width:100%;margin-top:8px;padding:12px;border:2px solid #111;border-radius:10px;" />
+    </div>
+
+    <!-- SUBMIT -->
+    <button type="submit"
+            style="width:100%;padding:14px;background:#111;color:#fff;border:none;border-radius:10px;font-weight:600;">
+        Submit
+    </button>
+
+</div>
+
+</EditForm>
+
+
+
+
+@code{
+
+    public class UserInfoRequest{
+        public required byte[] MainCv {get;set;}
+        public required byte[]? CoverLetter {get;set;}
+        public int NoOfTimesExec {get;set;}
+
+        public required string[] DesiredRoles {get;set;}
+        };
+
+    private UserInfoRequest userInfo = new(){
+        MainCv=null,CoverLetter = null,
+        NoOfTimesExec =0,
+        DesiredRoles = new string[1]
+
+
+    };
+
+
+    private void AddRole()
+{
+    if (userInfo.DesiredRoles.Length >= 3) return;
+
+    userInfo.DesiredRoles = userInfo.DesiredRoles
+        .Concat(new[] { "" })
+        .ToArray();
+}
+
+private void RemoveRole(int index)
+{
+    if (userInfo.DesiredRoles.Length <= 1) return;
+
+    userInfo.DesiredRoles = userInfo.DesiredRoles
+        .Where((_, i) => i != index)
+        .ToArray();
+}
+
+private void UpdateRole(int index, string? value)
+{
+    userInfo.DesiredRoles[index] = value ?? "";
+}
+
+
+      private async Task HandleCvUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        using var ms = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(ms);
+        userInfo.MainCv = ms.ToArray();
+    }
+
+    private async Task HandleCoverLetterUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        using var ms = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(ms);
+        userInfo.CoverLetter = ms.ToArray();
+    }
+    private async Task  HandleSubmit(){
+        var request = new HttpRequestMessage(HttpMethod.Post, "api/UserInfo/setup"){
+              Content = JsonContent.Create(userInfo)
+
+        };
+
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+        var response = await Http.SendAsync(request);
+
+
+
+    }
+
+}
